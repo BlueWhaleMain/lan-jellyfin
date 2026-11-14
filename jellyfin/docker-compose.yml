@@ -1,0 +1,55 @@
+services:
+  jellyfin:
+    cap_drop:
+      - ALL
+    env_file:
+      - env/jellyfin.env
+    environment:
+      - JELLYFIN_PublishedServerUrl=$JELLYFIN_PUBLISHED_SERVER_URL
+    image: jellyfin/jellyfin:${JELLYFIN_VERSION}
+    user: 1000:1000
+    logging:
+      options:
+        max-file: "${DOCKER_LOG_MAX_FILE:-30}"
+        max-size: "${DOCKER_LOG_MAX_SIZE:-10m}"
+    networks:
+      - proxy_default
+    read_only: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    volumes:
+      - config:/config
+      - cache:/cache
+      - media:/media
+  config-writer:
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+    cap_drop:
+      - ALL
+    command: "./permission_fix.sh"
+    env_file: env/config-writer.env
+    image: alpine:${ALPINE_VERSION}
+    profiles:
+      - init
+    read_only: true
+    restart: no
+    security_opt:
+      - no-new-privileges:true
+    user: root:root
+    volumes:
+      - ./example/permission_fix.sh:/permission_fix.sh:ro
+      - config:/config
+      - cache:/cache
+      - media:/media
+networks:
+  proxy_default:
+    external: true
+volumes:
+  config:
+  cache:
+  media:
